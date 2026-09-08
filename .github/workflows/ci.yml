@@ -16,10 +16,18 @@ jobs:
           node-version: 24
           cache: npm
 
-      - run: npm ci
+      - name: Install
+        # --legacy-peer-deps: stellar-wallets-kit pulls in optional
+        # multi-chain wallet adapters (e.g. @hot-wallet/sdk -> @solana/web3.js)
+        # whose peer dependency graph npm's strict resolver can't untangle.
+        # Unrelated to our own code; installs cleanly either way.
+        run: npm ci --legacy-peer-deps
 
       - name: Lint
         run: npm run lint
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
