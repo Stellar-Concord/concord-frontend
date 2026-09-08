@@ -25,8 +25,17 @@ vi.mock("@/lib/contract", () => ({
   cancelEscrow: vi.fn().mockResolvedValue(undefined),
   submitMilestone: vi.fn().mockResolvedValue(undefined),
   approveMilestone: vi.fn().mockResolvedValue(undefined),
+  expireMilestone: vi.fn().mockResolvedValue(undefined),
+  autoReleaseMilestone: vi.fn().mockResolvedValue(undefined),
+  buildMutualCancel: vi
+    .fn()
+    .mockResolvedValue({ json: "", needsSignatureFrom: [] }),
+  coSignMutualCancel: vi.fn().mockResolvedValue(""),
+  finalizeMutualCancel: vi.fn().mockResolvedValue(undefined),
   raiseDispute: vi.fn().mockResolvedValue(undefined),
   resolveDispute: vi.fn().mockResolvedValue(undefined),
+  hashFromHex: vi.fn().mockReturnValue(new Uint8Array(32)),
+  hashToHex: vi.fn().mockReturnValue("00".repeat(32)),
 }));
 
 import { getEscrow, listDisputes } from "@/lib/api";
@@ -206,5 +215,130 @@ describe("EscrowDetailPage role-aware actions", () => {
     await user.click(screen.getByText("Fund Escrow"));
 
     expect(contract.fundEscrow).toHaveBeenCalledWith(CLIENT, 1n);
+  });
+
+  it("shows Mark Expired once a pending milestone's deadline has passed, to any connected wallet", async () => {
+    useWalletMock.mockReturnValue({ address: ARBITRATOR, connect: vi.fn() });
+    await renderPage(
+      baseEscrow({
+        status: "in_progress",
+        milestones: [
+          {
+            escrow_id: 1,
+            milestone_id: 0,
+            description: "Design",
+            amount: "100",
+            status: "pending",
+            updated_at: "2026-01-01T00:00:00Z",
+            deadline: "2020-01-01T00:00:00Z",
+          },
+        ],
+      }),
+    );
+    expect(screen.getByText("Mark Expired")).toBeInTheDocument();
+  });
+
+  it("hides Mark Expired while a pending milestone's deadline is still in the future", async () => {
+    useWalletMock.mockReturnValue({ address: ARBITRATOR, connect: vi.fn() });
+    await renderPage(
+      baseEscrow({
+        status: "in_progress",
+        milestones: [
+          {
+            escrow_id: 1,
+            milestone_id: 0,
+            description: "Design",
+            amount: "100",
+            status: "pending",
+            updated_at: "2026-01-01T00:00:00Z",
+            deadline: "2099-01-01T00:00:00Z",
+          },
+        ],
+      }),
+    );
+    expect(screen.queryByText("Mark Expired")).not.toBeInTheDocument();
+  });
+
+  it("shows Auto-Release once the review period has elapsed since submission", async () => {
+    useWalletMock.mockReturnValue({ address: ARBITRATOR, connect: vi.fn() });
+    await renderPage(
+      baseEscrow({
+        status: "in_progress",
+        review_period: 3600,
+        milestones: [
+          {
+            escrow_id: 1,
+            milestone_id: 0,
+            description: "Design",
+            amount: "100",
+            status: "submitted",
+            updated_at: "2026-01-01T00:00:00Z",
+            submitted_at: "2020-01-01T00:00:00Z",
+          },
+        ],
+      }),
+    );
+    expect(screen.getByText("Auto-Release")).toBeInTheDocument();
+  });
+
+  it("hides Auto-Release before the review period has elapsed", async () => {
+    useWalletMock.mockReturnValue({ address: ARBITRATOR, connect: vi.fn() });
+    await renderPage(
+      baseEscrow({
+        status: "in_progress",
+        review_period: 3600,
+        milestones: [
+          {
+            escrow_id: 1,
+            milestone_id: 0,
+            description: "Design",
+            amount: "100",
+            status: "submitted",
+            updated_at: "2026-01-01T00:00:00Z",
+            submitted_at: new Date().toISOString(),
+          },
+        ],
+      }),
+    );
+    expect(screen.queryByText("Auto-Release")).not.toBeInTheDocument();
+  });
+
+  it("submits evidence URI and hash when submitting a milestone", async () => {
+    const user = userEvent.setup();
+    useWalletMock.mockReturnValue({ address: PROVIDER, connect: vi.fn() });
+    await renderPage(
+      baseEscrow({
+        status: "in_progress",
+        milestones: [
+          {
+            escrow_id: 1,
+            milestone_id: 0,
+            description: "Design",
+            amount: "100",
+            status: "pending",
+            updated_at: "2026-01-01T00:00:00Z",
+          },
+        ],
+      }),
+    );
+
+    await user.click(screen.getByText("Submit Milestone"));
+    await user.type(
+      screen.getByPlaceholderText(/Evidence URI/),
+      "ipfs://evidence",
+    );
+    await user.type(
+      screen.getByPlaceholderText(/Hash of that content/),
+      "aa".repeat(32),
+    );
+    await user.click(screen.getByText("Submit"));
+
+    expect(contract.submitMilestone).toHaveBeenCalledWith(
+      PROVIDER,
+      1n,
+      0,
+      "ipfs://evidence",
+      expect.any(Uint8Array),
+    );
   });
 });

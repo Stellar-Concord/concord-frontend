@@ -84,3 +84,13 @@ export const signTransaction: typeof StellarWalletsKit.signTransaction = (
   xdr,
   opts,
 ) => StellarWalletsKit.signTransaction(xdr, opts);
+
+/**
+ * Matches `SignAuthEntry` from `@stellar/stellar-sdk`'s contract module.
+ * Only needed for multi-party auth (mutual cancellation): signing an auth
+ * entry for a party who isn't the one submitting the transaction.
+ */
+export const signAuthEntry: typeof StellarWalletsKit.signAuthEntry = (
+  entry,
+  opts,
+) => StellarWalletsKit.signAuthEntry(entry, opts);

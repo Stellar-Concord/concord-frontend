@@ -12,7 +12,8 @@ export type MilestoneStatus =
   | "submitted"
   | "released"
   | "disputed"
-  | "resolved";
+  | "resolved"
+  | "expired";
 
 export interface EscrowSummary {
   id: number;
@@ -25,6 +26,17 @@ export interface EscrowSummary {
   created_at: string;
   updated_at: string;
   updated_ledger: number;
+  /** Seconds the client has, after a milestone is submitted, before it
+   * becomes auto-releasable. `0` for escrows indexed before this field
+   * existed. */
+  review_period?: number;
+  /** The escrow's on-chain creation timestamp -- distinct from `created_at`
+   * above, which is when the indexer first wrote this row. */
+  chain_created_at?: string | null;
+  title?: string | null;
+  metadata_uri?: string | null;
+  /** Hex-encoded 32-byte hash of the content at `metadata_uri`. */
+  metadata_hash?: string | null;
 }
 
 export interface Milestone {
@@ -34,6 +46,14 @@ export interface Milestone {
   amount: string;
   status: MilestoneStatus;
   updated_at: string;
+  deadline?: string | null;
+  /** When `submit_milestone` was called. `null` until then. */
+  submitted_at?: string | null;
+  evidence_uri?: string | null;
+  /** Hex-encoded 32-byte hash of the content at `evidence_uri`. */
+  evidence_hash?: string | null;
+  /** "approved" or "auto_release". `null` until the milestone is released. */
+  released_via?: string | null;
 }
 
 export interface EscrowDetail extends EscrowSummary {
