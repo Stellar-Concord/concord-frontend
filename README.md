@@ -1,11 +1,16 @@
 # concord-frontend
 
-Reference UI for [Concord](../concord-contracts): create an escrow, act on
-it as client/provider/arbitrator, and browse open disputes. Writes go
-straight to the contract with a wallet-signed transaction; reads come from
-[`concord-backend`](../concord-backend)'s indexed API.
+[![CI](https://github.com/Stellar-Concord/concord-frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/Stellar-Concord/concord-frontend/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-Next.js 16 (App Router), TypeScript, Tailwind v4.
+Reference UI for the **Concord** protocol: create an escrow, act on it as
+client/provider/arbitrator, and browse open disputes. Writes go straight to
+[`concord-contracts`](https://github.com/Stellar-Concord/concord-contracts)
+with a wallet-signed transaction; reads come from
+[`concord-backend`](https://github.com/Stellar-Concord/concord-backend)'s
+indexed API.
+
+Built with Next.js 16 (App Router), TypeScript, and Tailwind v4.
 
 ## Setup
 
@@ -37,7 +42,7 @@ and `npm ci` both need the flag, CI already has it wired in.
 |---|---|
 | `/` | Dashboard: your escrows (as client or provider), connect wallet |
 | `/escrows/new` | Create an escrow: provider, arbitrator, token, milestones |
-| `/escrows/[id]` | Role-aware detail page -- see below |
+| `/escrows/[id]` | Role-aware detail page — see below |
 | `/arbitrator` | Open disputes assigned to the connected address |
 
 The detail page shows different actions depending on who's connected:
@@ -52,11 +57,11 @@ The detail page shows different actions depending on who's connected:
 ```
 lib/
 ├── env.ts        # NEXT_PUBLIC_* config, with sane defaults
-├── wallet.tsx     # WalletProvider/useWallet -- wraps stellar-wallets-kit
+├── wallet.tsx     # WalletProvider/useWallet — wraps stellar-wallets-kit
 ├── contract.ts     # One function per escrow action. Builds each via
 │                    # @stellar/stellar-sdk's contract.Client.from(), which
 │                    # fetches the contract's spec on-chain and marshals
-│                    # args/results automatically -- no generated bindings
+│                    # args/results automatically — no generated bindings
 │                    # to maintain.
 ├── api.ts          # Typed fetch wrapper for concord-backend's REST API
 └── format.ts        # Small display helpers (address truncation, etc.)
@@ -76,11 +81,11 @@ npm run build
 
 Vitest + React Testing Library (the setup Next.js's own docs recommend;
 every page here is a synchronous Client Component, so the one thing Vitest
-can't handle -- async Server Components -- doesn't apply). Coverage:
+can't handle — async Server Components — doesn't apply). Coverage:
 
-- `lib/format.test.ts`, `lib/api.test.ts` -- pure-function and
+- `lib/format.test.ts`, `lib/api.test.ts` — pure-function and
   mocked-`fetch` unit tests
-- `app/escrows/[id]/page.test.tsx` -- role-aware button visibility on the
+- `app/escrows/[id]/page.test.tsx` — role-aware button visibility on the
   detail page (the real business logic: who can see/do what, in which
   escrow/milestone state), plus a click triggering the right `lib/contract`
   call with the right args
@@ -92,14 +97,18 @@ and PR.
 
 Beyond the automated tests, this app has been driven end-to-end in a real
 headless browser against a real `concord-backend` + Postgres (including
-once against the real deployed testnet contract's indexed data) -- every
-route render clean, the wallet-kit connect modal opens correctly, and a
+once against the real deployed testnet contract's indexed data) — every
+route rendered clean, the wallet-kit connect modal opened correctly, and a
 hydration mismatch caused by the wallet kit's client-only style injection
 was found and fixed this way. Wallet **write** actions (fund/submit/
 approve/dispute/resolve) go through `stellar-wallets-kit`'s signing flow,
 which needs a real browser extension and so isn't exercised by the headless
-pass or the component tests above -- `lib/contract.ts` is a thin wrapper
+pass or the component tests above — `lib/contract.ts` is a thin wrapper
 around `@stellar/stellar-sdk`'s standard `contract.Client` simulate/sign/
 submit flow, the same primitives used (and proven live on testnet) by the
 Stellar CLI invocations documented in
 [`../concord-contracts/DEPLOYMENTS.md`](../concord-contracts/DEPLOYMENTS.md).
+
+## License
+
+[MIT](./LICENSE)
